@@ -1,3 +1,16 @@
+"""
+变量名kwyys
+抓appuid+devid+q+phone的值用#连接
+域名
+auto-login
+def login(q):
+    url = "http://ar.i.kuwo.cn/US_NEW/kuwo/login_kw"
+    headers = {
+
+定时 15 3 7-23/2 * * *
+"""
+
+
 import requests
 import datetime
 import random
