@@ -1,12 +1,7 @@
 """
-变量名kwyys
-抓appuid+devid+q+phone的值用#连接
-域名
-auto-login
-def login(q):
-    url = "http://ar.i.kuwo.cn/US_NEW/kuwo/login_kw"
-    headers = {
-
+变量名kwyy
+抓appuid#devid#q#phone的值用#连接
+q值：搜auto_login 域名http://ar.i.kuwo.cn/US_NEW/kuwo/login_kw
 定时 15 3 7-23/2 * * *
 """
 
