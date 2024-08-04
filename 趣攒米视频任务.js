@@ -3,8 +3,11 @@
  * @Author: 魂焱
  * @File: 趣攒米视频任务.js
  * @Software: WebStorm
- * @Description: 变量名 qzmCookie 抓包 x-qzm-token 每天0.6，满10提现，绑定支付宝时会自动提现0.3，秒到，十块大概二十分钟左右到账，我吃个头。邀请链接 http://anh5.quzanmi.com/landing?shifuId=56735145
+ * @Description: 变量名 qzmCookie 抓包 x-qzm-token 每天0.6，满10提现，绑定支付宝时会自动提现0.3，秒到，十块大概二十分钟左右到账，
  * 2024.5.4 更新
+ * 2024.5.8 更新 此脚本禁止大黄“转发”！！！
+ * 2024.5.31 更新，修复任务
+ * 2024.8.2 更新，任务列表
  */
 
 const $ = new ENV("趣攒米视频任务", ["qzmCookie"]);
@@ -16,8 +19,17 @@ class QZM {
         this.index = ++index;
         $.sb.push("\u4eba\u4eba\u6709")
         this.idf = this.idfa()
+        this.oaid = this.randomString(16);
+        this.androidId = this.randomString(16);
     }
-
+    randomString(length) {
+        // const table = "0123456789ABCDEF";
+        const table = "0123456789abcdef";
+        const _0x5ddc9a = {
+            length: length
+        };
+        return Array.from(_0x5ddc9a, () => table[Math.floor(Math.random() * table.length)]).join("");
+    }
     randomStringNum(length) {
         // const table = "0123456789ABCDEF";
         const table = "0123456789";
@@ -36,28 +48,43 @@ class QZM {
             $.log(`账号[${this.index}]【${this.nickName}】 获取任务列表`)
             $.sb.push("\u8d23\uff01")
             const tasks = await this.taskList()
+            // console.log(tasks)
             for (const task of tasks) {
-                const source = task.source;
+                let source = task.source;
+                let task_id = task.task_id;
+                let view_times = task.view_times;
+
                 $.log(`账号[${this.index}]【${this.nickName}】 开始任务 ${task.name}`)
                 for (let i = 0; i < 10; i++) {
+                    if (view_times>=10){
+                        break
+                    }
                     try {
                         $.log(`账号[${this.index}]【${this.nickName}】 假装看广告 ${i+1}`)
-                        await this.ecpm();
+                        const reportRes = await this.ecpm(source,task_id);
+                        task_id = reportRes.task_id;
+                        if (reportRes.view_times>=10){
+                            break;
+                        }
                     }catch (e) {
                         console.log(e)
                     }
                     await $.wait(10000)
                 }
+                await $.wait(1000)
                 try {
+                    if (task_id===0||!task_id){
+                        throw new Error("任务已完成")
+                    }
                     $.log(`账号[${this.index}]【${this.nickName}】 领取奖励`)
-                    const re = await this.reward(source)
+                    const re = await this.reward(source,task_id)
                     if (re){
                         $.log(`账号[${this.index}]【${this.nickName}】 领取奖励成功`)
                     }else {
                         $.log(`账号[${this.index}]【${this.nickName}】 领取奖励失败`)
                     }
                 }catch (e) {
-                    console.log(e)
+                    console.log(e.message)
                 }
             }
         } catch (e) {
@@ -89,17 +116,38 @@ class QZM {
     get headers(){
         return {
             'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'zh-CN,zh-Hans;q=0.9',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Origin': 'http://anh5.quzanmi.com',
+            'Pragma': 'no-cache',
+            'Referer': 'http://anh5.quzanmi.com/',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'cross-site',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 14; 22081212C Build/UKQ1.230917.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/125.0.6422.3 Mobile Safari/537.36 AgentWeb/5.0.8  UCBrowser/11.6.4.950',
+            'sec-ch-ua': '"Android WebView";v="125", "Chromium";v="125", "Not.A/Brand";v="24"',
+            'sec-ch-ua-mobile': '?1',
+            'sec-ch-ua-platform': '"Android"',
+            'x-qzm-aid': `|${this.oaid}|${this.androidId}`,
+            'x-qzm-bundle': 'com.zhangwen.quzanmi|Redmi|14|1.0.1',
+            'x-qzm-device': 'android',
             'x-qzm-time': parseInt((Date.now() / 1000).toString()).toString(),
-            'Origin': 'https://h5.quzanmi.com',
             'x-qzm-token': this.ck,
-            'x-qzm-device': 'iphone',
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) qzm',
-            'x-qzm-bundle': 'com.ownershipfre.cn|iPhone8,1|15.8|1.1',
-            'x-qzm-idfa': this.idf,
-            'Referer': 'https://h5.quzanmi.com/',
-            'Connection': 'keep-alive'
         }
+        // return {
+        //     'Accept': 'application/json, text/plain, */*',
+        //     'Accept-Language': 'zh-CN,zh-Hans;q=0.9',
+        //     'x-qzm-time': parseInt((Date.now() / 1000).toString()).toString(),
+        //     'Origin': 'https://h5.quzanmi.com',
+        //     'x-qzm-token': this.ck,
+        //     'x-qzm-device': 'iphone',
+        //     'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) qzm',
+        //     'x-qzm-bundle': 'com.ownershipfre.cn|iPhone8,1|15.8|1.1',
+        //     'x-qzm-idfa': this.idf,
+        //     'Referer': 'https://h5.quzanmi.com/',
+        //     'Connection': 'keep-alive'
+        // }
     }
 
     async getUserInfo() {
@@ -138,7 +186,8 @@ class QZM {
         };
         const res = await $.request(options);
         if (res.code === 2000) {
-            const list = res.data.filter(item => item.source.includes("videoad"));
+            // console.log(res)
+            const list = res.data.list.filter(item => item.source.includes("videoad"));
             // console.log(list)
             return list
         } else {
@@ -154,12 +203,21 @@ class QZM {
         return randomNumber.toString();
     }
 
-    async reward(source) {
+    async reward(source,task_id) {
+        const msgres = await this.getMessage(source,task_id);
+        if (!msgres) {
+            return false;
+        }
+        const bodys = (new Function(decodeURIComponent(msgres)))();
+        // console.log(bodys)
         const options = {
             url: `https://api.quzanmi.com/api/ad/task/reward`,
             method: 'POST',
             headers: this.headers,
-            body: JSON.stringify({"source": source})
+            body: JSON.stringify({
+                "task_id": task_id,
+                "source": source
+            })
         }
         options.headers["Content-Type"]= 'application/json;charset=UTF-8';
         const res = await $.request(options);
@@ -171,16 +229,85 @@ class QZM {
         }
     }
 
-    async ecpm() {
+    async ecpm(source,task_id) {
+        await this.adCallback();
+        await $.wait(1000);
         const options = {
-            url: `https://api.quzanmi.com/api/ad/app/ecpm`,
+            url: `https://api.quzanmi.com/api/ad/report/task`,
             method: 'POST',
             headers: this.headers,
-            body: JSON.stringify({"ecpm": this.randomEcpm(20000,300000)+".00", "source": "baidu", "kind": "video", "rit_id": "1"+this.randomStringNum(7)})
+            body: JSON.stringify({
+                "task_id": task_id,
+                "source": source
+            })
         }
         options.headers["Content-Type"]= 'application/json;charset=UTF-8';
         const res = await $.request(options);
-        return res.code === 2000;
+        // console.log(res)
+        if (res.code === 2000){
+            return res.data
+        }else {
+            console.log(res)
+            $.log(`账号[${this.index}]【${this.nickName}】 上报任务失败`);
+            if (res.msg.includes("已经领取过任务")){
+                return {
+                    view_times:11
+                }
+            }
+            return false;
+        }
+    }
+
+    async adCallback() {
+        const msg2 = await this.getmessage2();
+        if (!msg2) {
+            return false;
+        }
+        const bodys = (new Function(decodeURIComponent(msg2)))();
+        // console.log(bodys)
+        const options = {
+            url: 'https://api-access.pangolin-sdk-toutiao.com/api/ad/union/mediation/reward_video/reward/',
+            method: 'POST',
+            headers: {
+                'user-agent':'Dalvik/2.1.0 (Linux; U; Android 14; zh-CN; 22081212C Build/UKQ1.230917.001)',
+                'content-type':'application/json; charset=utf-8',
+                'accept-encoding':'gzip'
+            },
+            body: JSON.stringify({"message":bodys,"cypher":2})
+        }
+        const res = await $.request(options);
+        if (res.code===20000){
+            $.log(`账号[${this.index}]【${this.nickName}】 上报广告成功`);
+            return true;
+        }else {
+            console.log(res)
+            $.log(`账号[${this.index}]【${this.nickName}】 上报广告失败`);
+            return false;
+        }
+    }
+
+    async getmessage2() {
+        const options = {
+            'method': 'POST',
+            'url': 'https://emo.hunyan6.cn/adMessage2',
+            // 'url': 'http://127.0.0.1:3272/adMessage2',
+            'headers': {
+                'User-Agent': 'Apifox/1.0.0 (https://apifox.com)',
+                'Content-Type': 'application/json',
+                'Accept': '*/*',
+                'Connection': 'keep-alive'
+            },
+            body: JSON.stringify({
+                uuid:this.id
+            })
+        };
+        const res = await $.request(options);
+        if (res.code === 200) {
+            return res.data;
+        } else {
+            $.log(`账号[${this.index}]【${this.nickName}】 获取参数失败`);
+            return false;
+        }
     }
 
     async trade(point){
@@ -204,6 +331,33 @@ class QZM {
             return false;
         }
     }
+
+    async getMessage(source,task_id) {
+        const options = {
+            'method': 'POST',
+            'url': 'https://emo.hunyan6.cn/qzmReward',
+            // 'url': 'http://127.0.0.1:3272/qzmReward',
+            'headers': {
+                'User-Agent': 'Apifox/1.0.0 (https://apifox.com)',
+                'Content-Type': 'application/json',
+                'Accept': '*/*',
+                'Connection': 'keep-alive'
+            },
+            body: JSON.stringify({
+                source,
+                task_id
+            })
+
+        };
+        const res = await $.request(options);
+        if (res.code === 200) {
+            return res.data;
+        } else {
+            $.log(`账号[${this.index}]【${this.nickName}】 获取参数失败`);
+            return false;
+        }
+    }
+
 };
 
 (async () => {
